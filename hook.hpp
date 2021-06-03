@@ -1,7 +1,7 @@
 #ifndef HOOK_H
 #define HOOK_H
 
-#include "mem.hpp"
+#include "memeory.hpp"
 
 #if defined(_M_X64) || defined(__x86_64__)
 	#include "./hde/hde64.h"
@@ -215,42 +215,39 @@ public:
 				break;
 			}
 			else {
-				if (hs.opcode == 0xE8) { // rel call
+				switch(hs.opcode) {
+					case 0xE8: // rel call
+						ptr_t call_addr = (actual_ptr + hs.len + hs.imm.imm32);
+						Call new_call = Call(gateway, call_addr);
 
-					ptr_t call_addr = (actual_ptr + hs.len + hs.imm.imm32);
-					Call new_call = Call(gateway, call_addr);
-					memcpy(temp_code + new_size, &new_call, sizeof(new_call));
+						memcpy(temp_code + new_size, &new_call, sizeof(new_call));
 
-					new_size += sizeof(new_call);
-				}
-				else if (hs.opcode == 0xE9) { // rel jump
+						new_size += sizeof(new_call);
+					case 0xE9:  // rel jump
+						ptr_t jump_addr = (actual_ptr + hs.len + hs.imm.imm32);
+						Jump new_jump = Jump(gateway, jump_addr);
 
-					ptr_t jump_addr = (actual_ptr + hs.len + hs.imm.imm32);
-					Jump new_jump = Jump(gateway, jump_addr);
+						memcpy(temp_code + new_size, &new_jump, sizeof(new_jump));
 
-					memcpy(temp_code + new_size, &new_jump, sizeof(new_jump));
+						new_size += sizeof(new_jump);
+				
+					case 0x75: // rel conditionnal jump
+						ptr_t jne_addr = (actual_ptr + hs.len + hs.imm.imm32);
+						Jne new_jne = Jne(gateway, jne_addr);
 
-					new_size += sizeof(new_jump);
-				}
-				else if (hs.opcode == 0x75) { // rel conditionnal jump
-					ptr_t jne_addr = (actual_ptr + hs.len + hs.imm.imm32);
-					Jne new_jne = Jne(gateway, jne_addr);
+						memcpy(temp_code + new_size, &new_jne, sizeof(new_jne));
 
-					memcpy(temp_code + new_size, &new_jne, sizeof(new_jne));
+						new_size += sizeof(new_jne);
+					case 0x74: // rel conditionnal jump
+						ptr_t je_addr = (actual_ptr + hs.len + hs.imm.imm32);
+						Je new_je = Je(gateway, je_addr);
 
-					new_size += sizeof(new_jne);
-				}
-				else if (hs.opcode == 0x74) { // rel conditionnal jump
-					ptr_t je_addr = (actual_ptr + hs.len + hs.imm.imm32);
-					Je new_je = Je(gateway, je_addr);
+						memcpy(temp_code + new_size, &new_je, sizeof(new_je));
 
-					memcpy(temp_code + new_size, &new_je, sizeof(new_je));
-
-					new_size += sizeof(new_je);
-				}
-				else {
-					memcpy(temp_code + new_size, (void*)actual_ptr, instruction_size);
-					new_size += instruction_size;
+						new_size += sizeof(new_je);
+					default:
+						memcpy(temp_code + new_size, (void*)actual_ptr, instruction_size);
+						new_size += instruction_size;
 				};
 
 				offset += instruction_size;

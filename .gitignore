@@ -332,3 +332,11 @@ ASALocalRun/
 
 # Local History for Visual Studio
 .localhistory/
+
+# Debug folder
+.Debug/
+
+# Useless DLLmain
+dllmain.cpp
+*.vcxproj
+*.filters

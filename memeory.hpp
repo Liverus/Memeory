@@ -1,5 +1,5 @@
-#ifndef MEM_H
-#define MEM_H
+#ifndef MEMEORY_H
+#define MEMEORY_H
 
 #include "windows.h"
 #include <tchar.h>
