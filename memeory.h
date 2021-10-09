@@ -19,24 +19,36 @@ struct Memory {
 	Memory();
 	Memory(const char* window_name, const wchar_t* process_name);
 
-	// FUCK YOU I HATE CPP
-	//template<class Function> Function find_function(const char* moduleName, const char* exportName);
-	void* find_function(const char* moduleName, const char* exportName);
-
 	void* find_module(const char* moduleName);
 	bool  open_process(const char* window_name, const wchar_t* process_name);
 	void* offset(ptr_t addr);
-
-	void  unprotect(void* addr, size_t size, DWORD* save_protection);
-	void  protect(void* addr, size_t size, DWORD old_protection);
-
-	template<void(Method)(Memory mem, void*, void*, size_t)>
-	void  secure_memory_call(void* addr, void* buffer, size_t size);
 
 	void  patch(void* addr, char byte, size_t size);
 	void  write(void* addr, void* buffer, size_t size);
 	void  read(void* addr, void* buffer, size_t size);
 	void  nop(void* addr, size_t size);
+
+	void  unprotect(void* addr, size_t size, DWORD* save_protection);
+	void  protect(void* addr, size_t size, DWORD old_protection);
+
+	template<class T>
+	T find_function(const char * moduleName, const char * exportName) {
+		HMODULE hMod = GetModuleHandleA(moduleName);
+		void* src = GetProcAddress(hMod, exportName);
+
+		return (T)src;
+	}
+
+	template<void(*T)(Memory, void*, void*, size_t)>
+	void secure_memory_call(void* addr, void* buffer, size_t size) {
+		if (!success()) return;
+
+		DWORD old_protection = 0;
+
+		unprotect(addr, size, &old_protection);
+			T(*this, addr, buffer, size);
+		protect(addr, size, old_protection);
+	}
 
 	bool external;
 	HWND window;

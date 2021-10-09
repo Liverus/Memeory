@@ -7,9 +7,8 @@
 
 struct Nopper {
 	Nopper();
-	Nopper(Memory memory, void* target_addr, void* buffer, int buffer_size);
+	Nopper(Memory memory_, void* target_addr_, void* buffer_, int buffer_size_);
 
-	void inilialize(Memory memory_, void* target_addr_, void* buffer_, int buffer_size_);
 	void set(bool a);
 	void load();
 	void unload();

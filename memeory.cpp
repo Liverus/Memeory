@@ -27,7 +27,7 @@ void _write(Memory mem, void* addr, void* buffer, size_t size) {
 		WriteProcessMemory(mem.handle, addr, buffer, size, NULL);
 	}
 	else {
-		memcpy(addr, buffer, size);
+		memcpy(addr, buffer, size); //todo: rewrite memcpy so it's not imported anymore -> less detected?
 	}
 }
 
@@ -49,23 +49,7 @@ Memory::Memory(const char* window_name, const wchar_t* process_name) {
 };
 
 void* Memory::find_module(const char* moduleName) {
-	return GetModuleHandle((LPCWSTR)moduleName);
-}
-
-//FUCK YOU I HATE CPP
-//template<class Function> 
-//Function Memory::find_function(const char * moduleName, const char * exportName) {
-//	HMODULE hMod = GetModuleHandleA(moduleName);
-//	void* src = GetProcAddress(hMod, exportName);
-//
-//	return (Function)src;
-//}
-
-void* Memory::find_function(const char * moduleName, const char * exportName) {
-	HMODULE hMod = GetModuleHandleA(moduleName);
-	void* src = GetProcAddress(hMod, exportName);
-
-	return src;
+	return GetModuleHandleA(moduleName);
 }
 
 bool Memory::success() {
@@ -120,6 +104,8 @@ void Memory::unprotect(void* addr, size_t size, DWORD* save_protection) {
 }
 
 void Memory::protect(void* addr, size_t size, DWORD old_protection) {
+	if (!success()) return;
+
 	if (external) {
 		VirtualProtectEx(handle, addr, size, old_protection, &old_protection);
 	} else {
@@ -127,23 +113,13 @@ void Memory::protect(void* addr, size_t size, DWORD old_protection) {
 	}
 }
 
-template<void(*Method)(Memory, void*, void*, size_t)>
-void Memory::secure_memory_call(void* addr, void* buffer, size_t size) {
-
-	DWORD old_protection = 0;
-
-	unprotect(addr, size, &old_protection);
-		Method(*this, addr, buffer, size);
-	protect(addr, size, old_protection);
-}
-
 void Memory::patch(void* addr, char byte, size_t size=1) {
 	if (!success()) return;
 
-	void* buffer;
+	char* buffer;
 
 	if (size > 1) {
-		void* barray = new char[size];
+		char* barray = new char[size]; // mem leak pls
 		memset(barray, byte, size);
 
 		buffer = barray;

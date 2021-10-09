@@ -2,37 +2,27 @@
 
 Hook::Hook() {};
 
-Hook::Hook(Memory memory, void* target_addr, void* src_addr) {
-	inilialize(memory, target_addr, src_addr);
+Hook::Hook(Memory memory_, void* target_addr_, void* src_addr_) {
+	memory = memory_;
+	src_address = target_addr_;
+	target_address = src_addr_;
+
+	initialize();
 };
 
-Hook::Hook(Memory memory, const char* moduleName, const char* exportName, void* src_addr) {
-	inilialize(memory, memory.find_function(moduleName, exportName), src_addr);
+Hook::Hook(Memory memory_, const char* moduleName, const char* exportName, void* src_addr_) {
+	memory = memory_;
+	src_address = memory.find_function<void*>(moduleName, exportName);
+	target_address = src_addr_;
+
+	initialize();
 };
 
 bool Hook::success() {
 	return initialized;
 }
 
-// FUCK YOU I HATE CPP
-//template<typename Function>
-//Function Hook::get_original()
-//{
-//	if (loaded) {
-//		return gateway;
-//	}
-//}
-
-void* Hook::get_original()
-{
-	if (loaded) {
-		return gateway;
-	} else {
-		return src_address;
-	}
-}
-
-void* Hook::load() {
+void Hook::load() {
 
 	// write jump from src to gateway
 	memory.write(src_address, &jump_forward, sizeof(jump_forward));
@@ -41,13 +31,12 @@ void* Hook::load() {
 	memory.nop((void*)((ptr_t)src_address + sizeof(jump_forward)), size - sizeof(jump_forward));
 
 	loaded = true;
-
-	return gateway;
 };
 
 void Hook::unload() {
 	// re-write stolen bytes to src
 	memory.write(src_address, gateway, size);
+
 	loaded = false;
 };
 
@@ -104,23 +93,18 @@ code_t Hook::absolutify(code_t stolen_code, ptr_t gateway) {
 	return code_t(new_code, new_size);
 };
 
-void Hook::inilialize(Memory mem, void* addr, void* new_addr) {
-
-	memory = mem;
-	//size           = size;
-	src_address = addr;
-	target_address = new_addr;
+void Hook::initialize() {
 
 	// Setup  Jumps
 	jump_forward = Jump(memory, (ptr_t)src_address, (ptr_t)target_address);
 	size = get_code_size((ptr_t)src_address, sizeof(jump_forward));
 
 	byte_t* code_cache = new byte_t[size];
-	memory.write(code_cache, addr, size);
+	memory.write(code_cache, target_address, size);
 
 
 	gateway = VirtualAlloc(0, (size * 4) + sizeof(Jump), MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-	code_t new_func = absolutify(code_t((byte_t*)addr, size), (ptr_t)gateway);
+	code_t new_func = absolutify(code_t((byte_t*)src_address, size), (ptr_t)gateway);
 
 	if (size < sizeof(jump_forward)) {
 		return;

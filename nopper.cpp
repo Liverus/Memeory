@@ -2,16 +2,12 @@
 
 Nopper::Nopper() {};
 
-Nopper::Nopper(Memory memory, void* target_addr, void* buffer, int buffer_size) {
-	inilialize(memory, target_addr, buffer, buffer_size);
-}
-
-void Nopper::inilialize(Memory memory_, void* target_addr_, void* buffer_, int payload_size_) {
+Nopper::Nopper(Memory memory_, void* target_addr_, void* buffer_, int payload_size_) {
 	memory = memory_;
 	address = target_addr_;
 	payload = buffer_;
 	payload_size = payload_size_;
-};
+}
 
 void Nopper::load() {
 	memory.patch(address, 0x90, payload_size);
@@ -32,7 +28,6 @@ void Nopper::set(bool a) {
 	}
 };
 
-void Nopper::toggle()
-{
+void Nopper::toggle() {
 	set(!loaded);
 };
