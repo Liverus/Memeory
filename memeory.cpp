@@ -86,10 +86,8 @@ bool Memory::open_process(const char* window_name, const wchar_t* process_name) 
 	return true;
 }
 
-void* Memory::offset(ptr_t addr) {
-	if (!success()) return 0;
-
-	return (void*)(module_addr + addr);
+void* Memory::get_vmt_index(void* base, size_t index) {
+	return (void*)(*(ptr_t**)base)[index]; //nice ugliness, cope harder
 }
 
 void Memory::unprotect(void* addr, size_t size, DWORD* save_protection) {

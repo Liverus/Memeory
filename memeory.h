@@ -19,9 +19,10 @@ struct Memory {
 	Memory();
 	Memory(const char* window_name, const wchar_t* process_name);
 
+	static void* get_vmt_index(void* base, size_t index);
+
 	void* find_module(const char* moduleName);
 	bool  open_process(const char* window_name, const wchar_t* process_name);
-	void* offset(ptr_t addr);
 
 	void  patch(void* addr, char byte, size_t size);
 	void  write(void* addr, void* buffer, size_t size);

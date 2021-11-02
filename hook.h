@@ -9,10 +9,12 @@
 	#include "hde64.h"
 	typedef hde64s HDE;
 	#define HDE_DISASM(code, hs) hde64_disasm(code, hs)
+	#define MEMEORY_X64
 #else
 	#include "hde32.h"
 	typedef hde32s HDE;
 	#define HDE_DISASM(code, hs) hde32_disasm(code, hs)
+	#define MEMEORY_X32
 #endif
 
 

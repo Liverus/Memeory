@@ -5,17 +5,19 @@ VMT_Hook::VMT_Hook() {}
 VMT_Hook::VMT_Hook(Memory memory_, void* vmt_, int index_, void* new_method_) {
 	memory = memory_;
 	index = index_;
-	vmt = (ptr_t*)vmt_;
-	new_method = (ptr_t)new_method_;
+	new_method = new_method_;
+
+	vmt = *((void***)vmt_);
+
 	original_method = vmt[index];
 }
 
 void VMT_Hook::load() {
-	vmt[index] = new_method;
+	memory.write(&vmt[index], &new_method, sizeof(new_method)); //vmt[index] = new_method;
 	loaded = true;
 }
 
 void VMT_Hook::unload() {
-	vmt[index] = original_method;
+	memory.write(&vmt[index], &original_method, sizeof(original_method)); //vmt[index] = original_method;
 	loaded = false;
 }

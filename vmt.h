@@ -15,13 +15,13 @@ struct VMT_Hook {
 
 	template<typename T>
 	T get_original() {
-		return (T)(void*)original_method;
+		return (T)original_method;
 	}
 
 	Memory memory;
-	ptr_t* vmt;
-	ptr_t new_method;
-	ptr_t original_method;
+	void** vmt;
+	void* new_method;
+	void* original_method;
 	int index;
 	bool loaded = false;
 };
