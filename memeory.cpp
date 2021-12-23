@@ -1,7 +1,7 @@
 #include "memeory.h"
 
 // Copypasted from forums, idk which one tho
-MODULEENTRY32 dwGetModuleByName(const wchar_t* lpszModuleName, DWORD pID) {
+MODULEENTRY32 dwGetModuleByName(const char* lpszModuleName, DWORD pID) {
 	HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, pID);
 	MODULEENTRY32 ModuleEntry32 = { 0 };
 	ModuleEntry32.dwSize = sizeof(MODULEENTRY32);
@@ -14,7 +14,6 @@ MODULEENTRY32 dwGetModuleByName(const wchar_t* lpszModuleName, DWORD pID) {
 				break;
 			}
 		} while (Module32Next(hSnapshot, &ModuleEntry32));
-
 	}
 
 	CloseHandle(hSnapshot);
@@ -44,7 +43,7 @@ Memory::Memory() {
 	open_process(NULL, NULL);
 };
 
-Memory::Memory(const char* window_name, const wchar_t* process_name) {
+Memory::Memory(const char* window_name, const char* process_name) {
 	open_process(window_name, process_name);
 };
 
@@ -56,7 +55,7 @@ bool Memory::success() {
 	return initialized;
 }
 
-bool Memory::open_process(const char* window_name, const wchar_t* process_name) {
+bool Memory::open_process(const char* window_name, const char* process_name) {
 
 	if (window_name == NULL) {          
 		external = false;               
@@ -87,7 +86,7 @@ bool Memory::open_process(const char* window_name, const wchar_t* process_name) 
 }
 
 void* Memory::get_vmt_index(void* base, size_t index) {
-	return (void*)(*(ptr_t**)base)[index]; //nice ugliness, cope harder
+	return (*(void***)base)[index]; //nice ugliness, cope harder
 }
 
 void Memory::unprotect(void* addr, size_t size, DWORD* save_protection) {

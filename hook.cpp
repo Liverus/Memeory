@@ -1,4 +1,5 @@
 #include "hook.h"
+#include <iostream>
 
 Hook::Hook() {};
 
@@ -48,7 +49,7 @@ code_t Hook::absolutify(code_t stolen_code, ptr_t gateway) {
 	int new_size = 0;
 	int offset = 0;
 
-	byte_t* temp_code = new byte_t[size * 4]; // 16/5 < 4 | size*4 = maximum new_size
+	byte_t* temp_code = new byte_t[size * 4]; // 16/5 < 4 | size * 4 = maximum new_size
 
 	while (offset < size) {
 		ptr_t actual_ptr = ((ptr_t)code + offset);
@@ -58,21 +59,33 @@ code_t Hook::absolutify(code_t stolen_code, ptr_t gateway) {
 			break;
 		}
 		else {
-			ptr_t actual_new_ptr = (actual_ptr + hs.len + hs.imm.imm32);
-			code_t actual_new_code;
+			ptr_t actual_new_dimm = (actual_ptr + hs.len + hs.imm.imm32);
+			ptr_t actual_new_disp = (actual_ptr + hs.len + hs.disp.disp32);
 
+			code_t actual_new_code;
+			
 			switch (hs.opcode) { 
 				case 0xE8: // rel call
-					actual_new_code = Call(memory, gateway, actual_new_ptr).to_code();
+					actual_new_code = CALL(memory, gateway, actual_new_dimm).to_code(sizeof(CALL));
+					break;
 
 				case 0xE9: // rel jump
-					actual_new_code = Jump(memory, gateway, actual_new_ptr).to_code();
+					actual_new_code = JUMP(memory, gateway, actual_new_dimm).to_code(sizeof(JUMP));
+					break;
 	
 				case 0x75: // rel conditionnal jump
-					actual_new_code = Jne(memory, gateway, actual_new_ptr).to_code();
+					actual_new_code = JNE(memory, gateway, actual_new_dimm).to_code(sizeof(JNE));
+					break;
 
 				case 0x74: // rel conditionnal jump
-					actual_new_code = Je(memory, gateway, actual_new_ptr).to_code();
+					actual_new_code = JE(memory, gateway, actual_new_dimm).to_code(sizeof(JE));
+					break;
+
+				case 0x83: // sub, cmp, ?
+					if (hs.modrm == 0x3D) { // cmp
+						actual_new_code = CMP(memory, gateway, actual_new_disp).to_code(sizeof(CMP));
+						break;
+					}
 
 				default: // just copy the actual instruction, no need to absolutify
 					actual_new_code = code_t((byte_t*)actual_ptr, instruction_size);
@@ -96,21 +109,21 @@ code_t Hook::absolutify(code_t stolen_code, ptr_t gateway) {
 void Hook::initialize() {
 
 	// Setup  Jumps
-	jump_forward = Jump(memory, (ptr_t)src_address, (ptr_t)target_address);
+	jump_forward = JUMP(memory, (ptr_t)src_address, (ptr_t)target_address);
 	size = get_code_size((ptr_t)src_address, sizeof(jump_forward));
 
 	byte_t* code_cache = new byte_t[size];
 	memory.write(code_cache, target_address, size);
 
 
-	gateway = VirtualAlloc(0, (size * 4) + sizeof(Jump), MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+	gateway = VirtualAlloc(0, (size * 4) + sizeof(JUMP), MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
 	code_t new_func = absolutify(code_t((byte_t*)src_address, size), (ptr_t)gateway);
 
 	if (size < sizeof(jump_forward)) {
 		return;
 	}
 
-	jump_backward = Jump(memory, (ptr_t)gateway + new_func.size, (ptr_t)src_address + size);
+	jump_backward = JUMP(memory, (ptr_t)gateway + new_func.size, (ptr_t)src_address + size);
 
 	// write stolen bytes
 	memory.write(gateway, new_func.bytes, new_func.size);

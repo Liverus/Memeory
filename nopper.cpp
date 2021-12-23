@@ -2,11 +2,13 @@
 
 Nopper::Nopper() {};
 
-Nopper::Nopper(Memory memory_, void* target_addr_, void* buffer_, int payload_size_) {
+Nopper::Nopper(Memory memory_, void* target_addr_, int payload_size_) {
 	memory = memory_;
 	address = target_addr_;
-	payload = buffer_;
+	payload = new byte_t[payload_size_];
 	payload_size = payload_size_;
+
+	memory.write(payload, address, payload_size);
 }
 
 void Nopper::load() {
