@@ -47,8 +47,6 @@ struct x32_jump : op{
 		int delta = addr - src - sizeof(x32_jump);
 
 		mem.write(address, &delta, sizeof(address));
-
-		sizeof(x32_jump);
 	};
 
 	byte_t opcode = 0xE9;
