@@ -21,21 +21,17 @@ struct Memory {
 
 	static void* get_vmt_index(void* base, size_t index);
 
-	void* find_module(const char* moduleName);
-	bool  open_process(const char* window_name, const char* process_name);
-
-	void  patch(void* addr, char byte, size_t size);
-	void  write(void* addr, void* buffer, size_t size);
-	void  read(void* addr, void* buffer, size_t size);
-	void  nop(void* addr, size_t size);
-
-	void  unprotect(void* addr, size_t size, DWORD* save_protection);
-	void  protect(void* addr, size_t size, DWORD old_protection);
-
 	template<class T>
-	T find_function(const char * moduleName, const char * exportName) {
+	T find_function(const char* moduleName, const char* exportName) {
 		HMODULE hMod = GetModuleHandleA(moduleName);
 		void* src = GetProcAddress(hMod, exportName);
+
+		return (T)src;
+	}
+
+	template<class T>
+	T find_function(void* mod, const char* exportName) {
+		void* src = GetProcAddress((HMODULE)mod, exportName);
 
 		return (T)src;
 	}
@@ -47,9 +43,20 @@ struct Memory {
 		DWORD old_protection = 0;
 
 		unprotect(addr, size, &old_protection);
-			T(*this, addr, buffer, size);
+		T(*this, addr, buffer, size);
 		protect(addr, size, old_protection);
 	}
+
+	void* find_module(const char* moduleName);
+	bool  open_process(const char* window_name, const char* process_name);
+
+	void  patch(void* addr, char byte, size_t size);
+	void  write(void* addr, void* buffer, size_t size);
+	void  read(void* addr, void* buffer, size_t size);
+	void  nop(void* addr, size_t size);
+
+	void  unprotect(void* addr, size_t size, DWORD* save_protection);
+	void  protect(void* addr, size_t size, DWORD old_protection);
 
 	bool external;
 	HWND window;

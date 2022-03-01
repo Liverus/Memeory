@@ -3,18 +3,18 @@
 
 Hook::Hook() {};
 
-Hook::Hook(Memory memory_, void* target_addr_, void* src_addr_) {
+Hook::Hook(Memory memory_, void* src_addr_, void* target_addr_) {
 	memory = memory_;
-	src_address = target_addr_;
-	target_address = src_addr_;
+	src_address = src_addr_;
+	target_address = target_addr_;
 
 	initialize();
 };
 
-Hook::Hook(Memory memory_, const char* moduleName, const char* exportName, void* src_addr_) {
+Hook::Hook(Memory memory_, const char* moduleName, const char* exportName, void* target_addr_) {
 	memory = memory_;
 	src_address = memory.find_function<void*>(moduleName, exportName);
-	target_address = src_addr_;
+	target_address = target_addr_;
 
 	initialize();
 };
