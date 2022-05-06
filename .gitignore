@@ -1,0 +1,11 @@
+
+*.user
+*.filters
+*.vcxproj
+*.pdb
+*.lastbuildstate
+*.idb
+*.tlog
+*.log
+*.obj
+dllmain.cpp
