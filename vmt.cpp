@@ -1,6 +1,7 @@
 #include "vmt.h"
 
 namespace Memory {
+
 	VMT_Hook::VMT_Hook() {}
 
 	VMT_Hook::VMT_Hook(void* vmt_, int index_, void* new_method_, void* orignal_copy_) {
@@ -12,6 +13,10 @@ namespace Memory {
 		original_method = vmt[index];
 
 		*(void**)orignal_copy_ = original_method;
+
+		list.push_back(*this);
+
+		Load();
 	}
 
 	void VMT_Hook::Load() {
@@ -23,4 +28,12 @@ namespace Memory {
 		Memory::Write(&vmt[index], &original_method, sizeof(original_method));
 		loaded = false;
 	}
+
+	void VMT_Hook::UnloadAll() {
+		for (VMT_Hook hk : list) {
+			hk.Unload();
+		}
+	}
+
+	std::vector<VMT_Hook> VMT_Hook::list;
 }

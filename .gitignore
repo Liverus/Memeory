@@ -1,0 +1,10 @@
+
+*.obj
+*.log
+*.tlog
+*.idb
+dllmain.cpp
+memeory.vcxproj.filters
+memeory.vcxproj
+memeory.vcxproj.user
+*.pdb

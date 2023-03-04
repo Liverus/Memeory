@@ -94,7 +94,9 @@ namespace Memory {
 #else
 	typedef x32_jump jump_t;
 	typedef x32_call call_t;
-	//typedef x32_mov mov_t;
+	typedef x32_mov mov_t;
+
+	typedef x64_mov_deref mov_deref_t;
 #endif
 
 	struct x64_je : op {
@@ -155,7 +157,10 @@ namespace Memory {
 	public:
 		Hook();
 		Hook(void* src_address, void* target_address, void* original_copy=0);
+		Hook(void* src_address, int index, void* target_address, void* original_copy = 0);
 		Hook(const char* module_name, const char* export_name, void* target_address, void* original_copy=0);
+
+		static void UnloadAll();
 
 		void Initialize(void* src_addr_, void* target_addr_, void* original_address_);
 		void SetupJumps();
@@ -188,5 +193,7 @@ namespace Memory {
 		jump_t  jump_backward;
 
 		code_t original_code;
+
+		static std::vector<Hook> list;
 	};
 }

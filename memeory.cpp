@@ -93,7 +93,27 @@ namespace Memory {
 	};
 
 	void* FindModule(const char* moduleName) {
-		return GetModuleHandleA(moduleName);
+		return GetModuleHandle(moduleName);
+	}
+
+	void* GetBaseAddress() {
+		return FindModule(NULL);
+	}
+
+	MODULEINFO GetModuleInformation() {
+		MODULEINFO info;
+		HANDLE process = GetCurrentProcess();
+		HMODULE mod = GetModuleHandle(NULL);
+
+		GetModuleInformation(process, mod, &info, sizeof(info));
+
+		return info;
+	}
+
+	size_t GetBaseSize() {
+		MODULEINFO info = GetModuleInformation();
+
+		return info.SizeOfImage;
 	}
 
 	bool IsSuccess() {
@@ -102,10 +122,6 @@ namespace Memory {
 
 	bool IsFail() {
 		return last_code == MEMEORY_CODE::FAIL;
-	}
-
-	void* GetVmtIndex(void* base, size_t index) {
-		return (*(void***)base)[index]; // you're awesome!!!
 	}
 
 	void UnProtect(void* addr, size_t size, DWORD* save_protection) {
@@ -151,6 +167,10 @@ namespace Memory {
 		Patch(addr, 0x90, size);
 	}
 
+	void* Offset(void* addr, size_t size) {
+		return (void*)((ptr_t)addr + size);
+	}
+
 	bool IsInternal() {
 		return type == MEMEORY_TYPE::INTERN;
 	}
@@ -180,28 +200,26 @@ namespace Memory {
 		byte_t* temp_code = new byte_t[size * 4]; // 16/5 < 4 | size * 4 = maximum new_size
 
 		while (offset < size) {
-			void* actual_ptr = (void*)((ptr_t)code + offset);
+			void* actual_ptr = (void*)((ptr_t)code + offset); // todo: Offset()
 			int instruction_size = HDE_DISASM((void*)actual_ptr, &hs);
 
 			if (hs.flags & F_ERROR) {
 				break;
 			}
 			else {
-				void* actual_new_dimm = (void*)((ptr_t)actual_ptr + hs.len + hs.imm.imm32);
-				void* actual_new_disp = (void*)((ptr_t)actual_ptr + hs.len + hs.disp.disp32);
+				void* actual_new_dimm = (void*)((ptr_t)actual_ptr + hs.len + hs.imm.imm32); // todo: Offset()
+				void* actual_new_disp = (void*)((ptr_t)actual_ptr + hs.len + hs.disp.disp32); // todo: Offset()
 
 				code_t actual_new_code;
 
 				bool is_relative = hs.flags & F_RELATIVE;
 
 				// Debugging
-				// std::cout << std::hex << (int)hs.opcode << " " << (int)hs.opcode2 << std::endl;
-				// std::cout << std::hex << (int)hs.modrm << " " << (int)hs.modrm_mod << " " << (int)hs.modrm_reg << " " << (int)hs.modrm_rm << std::endl;
-				// std::cout << std::hex << (int)hs.sib << " " << (int)hs.rex << " " << (int)hs.p_66 << " " << (int)hs.p_67 << " " << (int)hs.p_lock << " " << (int)hs.p_rep << " " << (int)hs.p_seg << std::endl;
-				// std::cout << std::hex << (int)hs.rex_b << " " << (int)hs.rex_r << " " << (int)hs.rex_w << " " << (int)hs.rex_x << std::endl;
-				// std::cout << std::hex << (int)hs.sib_base << " " << (int)hs.sib_index << " " << (int)hs.sib_scale << std::endl;
-				// std::cout << std::hex << (hs.flags & F_RELATIVE) << std::endl;
-				// std::cout << std::hex << actual_new_dimm << " " << actual_new_disp << std::endl;
+				 //std::cout << std::hex << (int)hs.opcode << " " << (int)hs.opcode2 << std::endl;
+				 //std::cout << std::hex << (int)hs.modrm << " " << (int)hs.modrm_mod << " " << (int)hs.modrm_reg << " " << (int)hs.modrm_rm << std::endl;
+				 //std::cout << std::hex << (int)hs.sib_base << " " << (int)hs.sib_index << " " << (int)hs.sib_scale << std::endl;
+				 //std::cout << std::hex << (hs.flags & F_RELATIVE) << std::endl;
+				 //std::cout << std::hex << actual_new_dimm << " " << actual_new_disp << std::endl;
 
 				switch (hs.opcode) {
 
@@ -213,9 +231,11 @@ namespace Memory {
 					actual_new_code = jump_t(gateway, actual_new_dimm).to_code(sizeof(jump_t));
 					break;
 
-				case 0xFF:
-					actual_new_code = jump_t(gateway, *(void**)actual_new_disp).to_code(sizeof(jump_t));
-					break;
+				//case 0xFF:
+					//if (hs.modrm == 0xA0) {
+					//	actual_new_code = jump_t(gateway, actual_new_dimm).to_code(sizeof(jump_t));
+					//	break;
+					//}
 
 				case 0x75: // rel conditionnal jump
 					actual_new_code = jne_t(gateway, actual_new_dimm).to_code(sizeof(jne_t));
@@ -233,7 +253,7 @@ namespace Memory {
 					}
 
 				case 0x8B: // rel mov
-					if (hs.modrm == 0x05) {
+					if (hs.modrm == 0x05 || hs.modrm == 0x0D) {
 						actual_new_code = mov_deref_t(gateway, actual_new_disp).to_code(sizeof(mov_deref_t));
 						break;
 					}
@@ -255,7 +275,7 @@ namespace Memory {
 					if (is_relative) {
 						Error(MEMEORY_CODE::DISASSEMBLER_FAILED);
 					}
-					
+
 					actual_new_code = code_t((byte_t*)actual_ptr, instruction_size);
 				}
 
@@ -297,9 +317,9 @@ namespace Memory {
 
 			if (Memory::IsJump(hs))  {
 				if (hs.imm.imm32) {
-					jump_addr = (void*)((ptr_t)jump_addr + hs.len + hs.imm.imm32);
+					jump_addr = (void*)((ptr_t)jump_addr + hs.len + hs.imm.imm32); // todo: Offset()
 				} else {
-					jump_addr = (void*)((ptr_t)jump_addr + hs.len + hs.disp.disp32);
+					jump_addr = (void*)((ptr_t)jump_addr + hs.len + hs.disp.disp32); // todo: Offset()
 				}
 			} else {
 				return jump_addr;
@@ -326,7 +346,7 @@ namespace Memory {
 
 		while (true) {
 
-			auto hs = Disassemble((void*)((ptr_t)addr + size));
+			auto hs = Disassemble((void*)((ptr_t)addr + size)); // todo: Offset()
 
 			if (hs.opcode == 0xCC || hs.flags & F_ERROR) {
 				break;
@@ -347,7 +367,7 @@ namespace Memory {
 
 		while (offset < min_len) {
 
-			auto hs = Disassemble((void*)((ptr_t)addr + offset));
+			auto hs = Disassemble((void*)((ptr_t)addr + offset)); // todo: Offset()
 
 			if (hs.flags & F_ERROR) {
 				break;

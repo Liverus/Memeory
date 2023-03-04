@@ -1,12 +1,19 @@
 #pragma once
 
 #include "windows.h"
+#include "psapi.h"
+
 #include <TlHelp32.h>
 #include <tchar.h>
 #include <map>
+#include <vector>
 #include <iostream>
 
 typedef unsigned char byte_t;
+
+#define INRANGE(x,a,b)  (x >= a && x <= b) 
+#define getBits( x )    (INRANGE((x&(~0x20)),'A','F') ? ((x&(~0x20)) - 'A' + 0xa) : (INRANGE(x,'0','9') ? x - '0' : 0))
+#define getByte( x )    (getBits(x[0]) << 4 | getBits(x[1]))
 
 #if defined(_M_X64) || defined(__x86_64__)
 	typedef unsigned long long ptr_t;
@@ -65,12 +72,13 @@ namespace Memory {
 	void  Initialize(HANDLE handle_);
 	void  Initialize(const char* window_name, const char* process_name);
 
-	void* GetVmtIndex(void* base, size_t index);
-
 	void  InternalWrite(void* addr, void* buffer, size_t size);
 	void  InternalRead(void* addr, void* buffer, size_t size);
 
-	void* FindModule(const char* moduleName);
+	void* GetBaseAddress();
+	MODULEINFO GetModuleInformation();
+	size_t GetBaseSize();
+	void* FindModule(const char* moduleName=NULL);
 
 	void  Patch(void* addr, char byte, size_t size);
 	void  Write(void* addr, void* buffer, size_t size);
@@ -91,6 +99,36 @@ namespace Memory {
 
 	bool IsInternal();
 	bool IsExternal();
+
+	// Pasted
+
+	template <class T>
+	T FindPattern(const char* module_name, const char* signature) {
+		MODULEINFO modInfo;
+		GetModuleInformation(GetCurrentProcess(), GetModuleHandleA(module_name), &modInfo, sizeof(MODULEINFO));
+		ptr_t startAddress = reinterpret_cast<ptr_t>(modInfo.lpBaseOfDll);
+		ptr_t endAddress = startAddress + modInfo.SizeOfImage;
+		const char* pat = signature;
+		ptr_t firstMatch = 0;
+		for (ptr_t pCur = startAddress; pCur < endAddress; pCur++)
+		{
+			if (!*pat) return (T)firstMatch;
+			if (*(PBYTE)pat == '\?' || *(BYTE*)pCur == getByte(pat))
+			{
+				if (!firstMatch) firstMatch = pCur;
+				if (!pat[2]) return (T)firstMatch;
+				if (*(PWORD)pat == '\?\?' || *(PBYTE)pat != '\?') pat += 3;
+				else pat += 2;
+			}
+			else
+			{
+				pat = signature;
+				firstMatch = 0;
+			}
+		}
+
+		return NULL;
+	}
 
 	template<class T>
 	T FindFunction(void* mod, const char* export_name) {

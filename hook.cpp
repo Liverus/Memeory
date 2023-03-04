@@ -7,6 +7,10 @@ namespace Memory{
 		Initialize(src_addr, target_addr, original_address);
 	};
 
+	Hook::Hook(void* src_addr, int index, void* target_addr, void* original_address) {
+		Initialize(Memory::VMT_Method<void*>(src_addr, index), target_addr, original_address);
+	};
+
 	Hook::Hook(const char* module_name, const char* export_name, void* target_addr, void* original_address) {
 		Initialize(Memory::FindFunction<void*>(module_name, export_name), target_addr, original_address);
 	};
@@ -16,6 +20,8 @@ namespace Memory{
 		src_address = src_addr_;
 		target_address = target_addr_;
 		original_address = original_address_;
+
+		list.push_back(*this);
 
 		SetupJumps();
 		Load();
@@ -95,4 +101,12 @@ namespace Memory{
 
 		loaded = false;
 	};
+
+	void Hook::UnloadAll() {
+		for (Hook hk : list) {
+			hk.Unload();
+		}
+	}
+
+	std::vector<Hook> Hook::list;
 }
